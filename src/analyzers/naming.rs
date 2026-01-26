@@ -139,7 +139,7 @@ impl NamingAnalyzer {
                                 file_path,
                                 source_code,
                                 ident.span,
-                                format!("Variabel '{}' memiliki nama terlalu umum. Gunakan nama yang lebih deskriptif yang menunjukkan tujuannya", name),
+                                format!("Variable '{}' has a generic name. Use a more descriptive name that indicates its purpose", name),
                                 "no-generic-name".to_string(),
                                 Severity::Suggestion,
                             );
@@ -152,7 +152,7 @@ impl NamingAnalyzer {
                                 file_path,
                                 source_code,
                                 ident.span,
-                                format!("Variabel '{}' memiliki nama terlalu pendek. Gunakan minimal 3 karakter (kecuali untuk loop counter)", name),
+                                format!("Variable '{}' name is too short. Use at least 3 characters (except for loop counters)", name),
                                 "no-short-name".to_string(),
                                 Severity::Suggestion,
                             );
@@ -165,7 +165,7 @@ impl NamingAnalyzer {
                                 file_path,
                                 source_code,
                                 ident.span,
-                                format!("Variabel boolean '{}' sebaiknya diawali dengan is/has/can/should", name),
+                                format!("Boolean variable '{}' should be prefixed with is/has/can/should", name),
                                 "boolean-prefix".to_string(),
                                 Severity::Suggestion,
                             );
@@ -185,7 +185,7 @@ impl NamingAnalyzer {
                             file_path,
                             source_code,
                             func.span,
-                            format!("Fungsi '{}' memiliki nama terlalu umum. Gunakan nama yang lebih deskriptif yang menjelaskan fungsinya", func_name),
+                            format!("Function '{}' has a generic name. Use a more descriptive name that describes its function", func_name),
                             "no-generic-function-name".to_string(),
                             Severity::Suggestion,
                         );
@@ -273,7 +273,7 @@ impl NamingAnalyzer {
                     file_path,
                     source_code,
                     ident.span,
-                    format!("Parameter '{}' memiliki nama terlalu umum. Gunakan nama yang lebih deskriptif", name),
+                    format!("Parameter '{}' has a generic name. Use a more descriptive name", name),
                     "no-generic-name".to_string(),
                     Severity::Suggestion,
                 );

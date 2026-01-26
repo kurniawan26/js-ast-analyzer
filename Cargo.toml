@@ -5,6 +5,14 @@ edition = "2021"
 description = "JavaScript/TypeScript AST analyzer for code quality checks"
 authors = ["Your Name <your.email@example.com>"]
 
+[lib]
+name = "js_ast_analyzer"
+path = "src/lib.rs"
+
+[[bin]]
+name = "js-ast-analyzer"
+path = "src/main.rs"
+
 [dependencies]
 # OXC Parser - Modern, fast JavaScript/TypeScript parser in Rust
 oxc_parser = "0.34"
