@@ -1,10 +1,10 @@
-use js_ast_analyzer::parser::JsParser;
+use js_ast_analyzer::JsParser;
 use std::path::PathBuf;
 
 #[test]
 fn test_complexity_simple_function() {
     let parser = JsParser::new();
-    let test_file = PathBuf::from("test-samples/test-complexity.js");
+    let test_file = PathBuf::from("test-samples/javascript/test-complexity.js");
     
     let result = parser.analyze_file(&test_file);
     assert!(result.is_ok(), "Failed to parse test-complexity.js");
@@ -19,7 +19,7 @@ fn test_complexity_simple_function() {
 #[test]
 fn test_complexity_nested_conditions() {
     let parser = JsParser::new();
-    let test_file = PathBuf::from("test-samples/test-complexity.js");
+    let test_file = PathBuf::from("test-samples/javascript/test-complexity.js");
     
     let result = parser.analyze_file(&test_file);
     assert!(result.is_ok());
@@ -37,7 +37,7 @@ fn test_complexity_nested_conditions() {
 #[test]
 fn test_complexity_too_many_parameters() {
     let parser = JsParser::new();
-    let test_file = PathBuf::from("test-samples/test-complexity.js");
+    let test_file = PathBuf::from("test-samples/javascript/test-complexity.js");
     
     let result = parser.analyze_file(&test_file);
     assert!(result.is_ok());
@@ -56,7 +56,7 @@ fn test_complexity_too_many_parameters() {
 #[test]
 fn test_complexity_summary() {
     let parser = JsParser::new();
-    let test_file = PathBuf::from("test-samples/test-complexity.js");
+    let test_file = PathBuf::from("test-samples/javascript/test-complexity.js");
     
     let result = parser.analyze_file(&test_file);
     assert!(result.is_ok());

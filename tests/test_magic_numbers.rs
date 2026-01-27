@@ -1,10 +1,10 @@
-use js_ast_analyzer::parser::JsParser;
+use js_ast_analyzer::JsParser;
 use std::path::PathBuf;
 
 #[test]
 fn test_magic_numbers_detection() {
     let parser = JsParser::new();
-    let test_file = PathBuf::from("test-samples/test-magic-numbers.js");
+    let test_file = PathBuf::from("test-samples/javascript/test-magic-numbers.js");
     
     let result = parser.analyze_file(&test_file);
     assert!(result.is_ok(), "Failed to parse test-magic-numbers.js");
@@ -22,7 +22,7 @@ fn test_magic_numbers_detection() {
 #[test]
 fn test_magic_numbers_allowed_values() {
     let parser = JsParser::new();
-    let test_file = PathBuf::from("test-samples/test-magic-numbers.js");
+    let test_file = PathBuf::from("test-samples/javascript/test-magic-numbers.js");
     
     let result = parser.analyze_file(&test_file);
     assert!(result.is_ok());
@@ -41,7 +41,7 @@ fn test_magic_numbers_allowed_values() {
 #[test]
 fn test_hardcoded_strings() {
     let parser = JsParser::new();
-    let test_file = PathBuf::from("test-samples/test-magic-numbers.js");
+    let test_file = PathBuf::from("test-samples/javascript/test-magic-numbers.js");
     
     let result = parser.analyze_file(&test_file);
     assert!(result.is_ok());

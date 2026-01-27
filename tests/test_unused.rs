@@ -1,10 +1,10 @@
-use js_ast_analyzer::parser::JsParser;
+use js_ast_analyzer::JsParser;
 use std::path::PathBuf;
 
 #[test]
 fn test_unused_variables() {
     let parser = JsParser::new();
-    let test_file = PathBuf::from("test-samples/test-unused.js");
+    let test_file = PathBuf::from("test-samples/javascript/test-unused.js");
     
     let result = parser.analyze_file(&test_file);
     assert!(result.is_ok(), "Failed to parse test-unused.js");
@@ -22,7 +22,7 @@ fn test_unused_variables() {
 #[test]
 fn test_unused_summary() {
     let parser = JsParser::new();
-    let test_file = PathBuf::from("test-samples/test-unused.js");
+    let test_file = PathBuf::from("test-samples/javascript/test-unused.js");
     
     let result = parser.analyze_file(&test_file);
     assert!(result.is_ok());

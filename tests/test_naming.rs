@@ -1,17 +1,17 @@
-use js_ast_analyzer::parser::JsParser;
+use js_ast_analyzer::JsParser;
 use std::path::PathBuf;
 
 #[test]
 fn test_naming_generic_names() {
     let parser = JsParser::new();
-    let test_file = PathBuf::from("test-samples/test-naming.js");
+    let test_file = PathBuf::from("test-samples/javascript/test-naming.js");
     
     let result = parser.analyze_file(&test_file);
     assert!(result.is_ok(), "Failed to parse test-naming.js");
     
     let analysis = result.unwrap();
     
-    // Should detect generic names like 'data', 'result', 'info', 'value'
+    // Should detect generic generic names like 'data', 'result', 'info', 'value'
     let generic_issues: Vec<_> = analysis.issues.iter()
         .filter(|issue| issue.message.contains("generic") || issue.message.contains("descriptive"))
         .collect();
@@ -22,7 +22,7 @@ fn test_naming_generic_names() {
 #[test]
 fn test_naming_short_names() {
     let parser = JsParser::new();
-    let test_file = PathBuf::from("test-samples/test-naming.js");
+    let test_file = PathBuf::from("test-samples/javascript/test-naming.js");
     
     let result = parser.analyze_file(&test_file);
     assert!(result.is_ok());
@@ -41,7 +41,7 @@ fn test_naming_short_names() {
 #[test]
 fn test_naming_boolean_prefix() {
     let parser = JsParser::new();
-    let test_file = PathBuf::from("test-samples/test-naming.js");
+    let test_file = PathBuf::from("test-samples/javascript/test-naming.js");
     
     let result = parser.analyze_file(&test_file);
     assert!(result.is_ok());
@@ -60,7 +60,7 @@ fn test_naming_boolean_prefix() {
 #[test]
 fn test_naming_summary() {
     let parser = JsParser::new();
-    let test_file = PathBuf::from("test-samples/test-naming.js");
+    let test_file = PathBuf::from("test-samples/javascript/test-naming.js");
     
     let result = parser.analyze_file(&test_file);
     assert!(result.is_ok());

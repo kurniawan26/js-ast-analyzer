@@ -1,10 +1,10 @@
-use js_ast_analyzer::parser::JsParser;
+use js_ast_analyzer::JsParser;
 use std::path::PathBuf;
 
 #[test]
 fn test_null_safety_chained_property_access() {
     let parser = JsParser::new();
-    let test_file = PathBuf::from("test-samples/test-null-safety.js");
+    let test_file = PathBuf::from("test-samples/javascript/test-null-safety.js");
     
     let result = parser.analyze_file(&test_file);
     assert!(result.is_ok(), "Failed to parse test-null-safety.js");
@@ -22,7 +22,7 @@ fn test_null_safety_chained_property_access() {
 #[test]
 fn test_null_safety_array_access() {
     let parser = JsParser::new();
-    let test_file = PathBuf::from("test-samples/test-null-safety.js");
+    let test_file = PathBuf::from("test-samples/javascript/test-null-safety.js");
     
     let result = parser.analyze_file(&test_file);
     assert!(result.is_ok());
@@ -41,7 +41,7 @@ fn test_null_safety_array_access() {
 #[test]
 fn test_null_safety_summary() {
     let parser = JsParser::new();
-    let test_file = PathBuf::from("test-samples/test-null-safety.js");
+    let test_file = PathBuf::from("test-samples/javascript/test-null-safety.js");
     
     let result = parser.analyze_file(&test_file);
     assert!(result.is_ok());

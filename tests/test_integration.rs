@@ -1,4 +1,4 @@
-use js_ast_analyzer::parser::JsParser;
+use js_ast_analyzer::JsParser;
 use std::path::PathBuf;
 
 #[test]
@@ -21,7 +21,7 @@ fn test_analyze_all_test_samples() {
 #[test]
 fn test_typescript_file() {
     let parser = JsParser::new();
-    let test_file = PathBuf::from("test-samples/sample.ts");
+    let test_file = PathBuf::from("test-samples/javascript/sample.ts");
     
     let result = parser.analyze_file(&test_file);
     assert!(result.is_ok(), "Failed to parse TypeScript file");
@@ -35,7 +35,7 @@ fn test_typescript_file() {
 #[test]
 fn test_javascript_file() {
     let parser = JsParser::new();
-    let test_file = PathBuf::from("test-samples/sample.js");
+    let test_file = PathBuf::from("test-samples/javascript/sample.js");
     
     let result = parser.analyze_file(&test_file);
     assert!(result.is_ok(), "Failed to parse JavaScript file");
@@ -49,7 +49,7 @@ fn test_javascript_file() {
 #[test]
 fn test_summary_consistency() {
     let parser = JsParser::new();
-    let test_file = PathBuf::from("test-samples/test-naming.js");
+    let test_file = PathBuf::from("test-samples/javascript/test-naming.js");
     
     let result = parser.analyze_file(&test_file);
     assert!(result.is_ok());
