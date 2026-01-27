@@ -30,6 +30,8 @@ pub enum Category {
     Performance,
     Maintainability,
     TypeScript,
+    Kotlin,
+    Complexity,
 }
 
 impl fmt::Display for Category {
@@ -41,6 +43,8 @@ impl fmt::Display for Category {
             Category::Performance => write!(f, "performance"),
             Category::Maintainability => write!(f, "maintainability"),
             Category::TypeScript => write!(f, "typescript"),
+            Category::Kotlin => write!(f, "kotlin"),
+            Category::Complexity => write!(f, "complexity"),
         }
     }
 }
@@ -161,3 +165,16 @@ pub enum OutputFormat {
     Json,
     Human,
 }
+
+/// Programming language options
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
+pub enum Language {
+    Javascript,
+    Typescript,
+    Python,
+    Kotlin,
+    Flutter,
+}
+
+
+

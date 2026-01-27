@@ -2,16 +2,16 @@ use anyhow::Result;
 use clap::Parser;
 use std::path::PathBuf;
 
-mod analyzers;
+mod languages;
 mod error;
 mod output;
-mod parser;
 mod types;
 
 use error::AnalyzerError;
 use output::OutputFormatter;
-use parser::JsParser;
-use types::OutputFormat;
+use languages::javascript::JsParser;
+use languages::kotlin::KotlinParser;
+use types::{OutputFormat, Language};
 
 /// JavaScript/TypeScript AST Analyzer for Code Quality
 #[derive(Parser, Debug)]
@@ -27,6 +27,10 @@ struct Args {
     /// Output format
     #[arg(short, long, value_enum, default_value_t = OutputFormat::Human)]
     format: OutputFormat,
+    
+    /// Programming language to analyze
+    #[arg(short, long, value_enum, default_value_t = Language::Javascript)]
+    language: Language,
 
     /// Exit with error code if any issues are found
     #[arg(short, long)]
@@ -45,17 +49,34 @@ fn main() -> Result<()> {
         return Err(AnalyzerError::InvalidPath(args.path.display().to_string()).into());
     }
 
-    // Initialize parser
-    let parser = JsParser::new();
-
-    // Analyze
-    let result = if args.path.is_file() {
-        let file_analysis = parser.analyze_file(&args.path)?;
-        let mut analysis_result = types::AnalysisResult::new();
-        analysis_result.add_file(file_analysis);
-        analysis_result
-    } else {
-        parser.analyze_directory(&args.path)?
+    // Analyze based on language
+    let result = match args.language {
+        Language::Javascript | Language::Typescript => {
+            let parser = JsParser::new();
+            if args.path.is_file() {
+                let file_analysis = parser.analyze_file(&args.path)?;
+                let mut analysis_result = types::AnalysisResult::new();
+                analysis_result.add_file(file_analysis);
+                analysis_result
+            } else {
+                parser.analyze_directory(&args.path)?
+            }
+        },
+        Language::Kotlin => {
+            let parser = KotlinParser::new();
+            if args.path.is_file() {
+                let file_analysis = parser.analyze_file(&args.path)?;
+                let mut analysis_result = types::AnalysisResult::new();
+                analysis_result.add_file(file_analysis);
+                analysis_result
+            } else {
+                parser.analyze_directory(&args.path)?
+            }
+        },
+        _ => {
+            println!("Support for {:?} is coming soon!", args.language);
+            return Ok(());
+        }
     };
 
     // Print results
