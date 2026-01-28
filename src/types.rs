@@ -32,6 +32,7 @@ pub enum Category {
     TypeScript,
     Kotlin,
     Complexity,
+    Dart,
 }
 
 impl fmt::Display for Category {
@@ -45,6 +46,7 @@ impl fmt::Display for Category {
             Category::TypeScript => write!(f, "typescript"),
             Category::Kotlin => write!(f, "kotlin"),
             Category::Complexity => write!(f, "complexity"),
+            Category::Dart => write!(f, "dart"),
         }
     }
 }
@@ -173,7 +175,7 @@ pub enum Language {
     Typescript,
     Python,
     Kotlin,
-    Flutter,
+    Dart,
 }
 
 

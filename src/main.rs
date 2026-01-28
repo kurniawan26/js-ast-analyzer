@@ -11,6 +11,7 @@ use error::AnalyzerError;
 use output::OutputFormatter;
 use languages::javascript::JsParser;
 use languages::kotlin::KotlinParser;
+use languages::dart::DartParser;
 use types::{OutputFormat, Language};
 
 /// JavaScript/TypeScript AST Analyzer for Code Quality
@@ -64,6 +65,17 @@ fn main() -> Result<()> {
         },
         Language::Kotlin => {
             let parser = KotlinParser::new();
+            if args.path.is_file() {
+                let file_analysis = parser.analyze_file(&args.path)?;
+                let mut analysis_result = types::AnalysisResult::new();
+                analysis_result.add_file(file_analysis);
+                analysis_result
+            } else {
+                parser.analyze_directory(&args.path)?
+            }
+        },
+        Language::Dart => {
+            let parser = DartParser::new();
             if args.path.is_file() {
                 let file_analysis = parser.analyze_file(&args.path)?;
                 let mut analysis_result = types::AnalysisResult::new();

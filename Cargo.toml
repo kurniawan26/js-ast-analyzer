@@ -39,6 +39,7 @@ walkdir = "2.5"
 colored = "2.1"
 tree-sitter = "0.22"
 tree-sitter-kotlin = "0.3.8"
+tree-sitter-dart = "0.0.4"
 
 [profile.release]
 opt-level = 3
