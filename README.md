@@ -173,6 +173,56 @@ src/sample.py:
 }
 ```
 
+
+## Integration with Autograder
+
+This tool is designed to integrate seamlessly with autograder systems:
+
+### Node.js Integration
+
+```typescript
+import { spawn } from 'child_process';
+
+async function analyzeCode(projectPath: string) {
+  const analyzerPath = '/path/to/js-ast-analyzer';
+  const result = await spawn(analyzerPath, [projectPath, '--language', 'javascript', '--format', 'json']);
+
+  const analysisResult = JSON.parse(result.stdout);
+  return analysisResult;
+}
+
+// Use in your review process
+const analysis = await analyzeCode(submissionPath);
+
+// Generate informative feedback
+if (analysis.summary.total > 0) {
+  const feedback = generateFeedback(analysis);
+  // Include in your report
+}
+```
+
+### Example Feedback Generator
+
+```typescript
+function generateCodeQualityFeedback(result: AnalysisResult): string | null {
+  if (result.summary.total === 0) return null;
+
+  let feedback = '## Code Quality Suggestions\n\n';
+
+  for (const file of result.files) {
+    if (file.issues.length > 0) {
+      feedback += `### ${file.file_path}\n\n`;
+      for (const issue of file.issues) {
+        feedback += `- Line ${issue.line}: ${issue.message}\n`;
+      }
+      feedback += '\n';
+    }
+  }
+
+  return feedback;
+}
+```
+
 ## Contributing
 
 We use a modular architecture located in `src/languages/`. To add a new language:
