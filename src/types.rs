@@ -33,6 +33,7 @@ pub enum Category {
     Kotlin,
     Complexity,
     Dart,
+    Python,
 }
 
 impl fmt::Display for Category {
@@ -47,6 +48,7 @@ impl fmt::Display for Category {
             Category::Kotlin => write!(f, "kotlin"),
             Category::Complexity => write!(f, "complexity"),
             Category::Dart => write!(f, "dart"),
+            Category::Python => write!(f, "python"),
         }
     }
 }

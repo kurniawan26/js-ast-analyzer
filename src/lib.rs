@@ -10,4 +10,5 @@ pub use error::{AnalyzerError, Result};
 pub use languages::javascript::JsParser;
 pub use languages::kotlin::KotlinParser;
 pub use languages::dart::DartParser;
+pub use languages::python::PythonParser;
 pub use types::{AnalysisResult, FileAnalysis, CodeIssue as Issue, Severity, OutputFormat};
