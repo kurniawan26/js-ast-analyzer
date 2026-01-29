@@ -1,16 +1,14 @@
-use crate::types::{AnalysisResult, FileAnalysis, SeveritySummary, CodeIssue, Severity, Category};
 use crate::error::{AnalyzerError, Result};
-use std::path::{Path, PathBuf};
+use crate::types::{AnalysisResult, Category, CodeIssue, FileAnalysis, Severity, SeveritySummary};
 use std::fs;
+use std::path::{Path, PathBuf};
 use tree_sitter::{Parser, Query, QueryCursor};
 
-pub struct DartParser {
-}
+pub struct DartParser {}
 
 impl DartParser {
     pub fn new() -> Self {
-        Self {
-        }
+        Self {}
     }
 
     pub fn analyze_file(&self, file_path: &Path) -> Result<FileAnalysis> {
@@ -19,25 +17,29 @@ impl DartParser {
         })?;
 
         let mut parser = Parser::new();
-        // Since we don't have tree_sitter_dart trait directly available as language() 
+        // Since we don't have tree_sitter_dart trait directly available as language()
         // We will assume tree_sitter_dart::language() is available
         // If compilation fails, we might need a different import.
-        parser.set_language(&tree_sitter_dart::language()).expect("Error loading Dart grammar");
+        parser
+            .set_language(&tree_sitter_dart::language())
+            .expect("Error loading Dart grammar");
 
-        let tree = parser.parse(&code, None).ok_or_else(|| AnalyzerError::ParseError {
-            file: file_path.display().to_string(),
-            line: 0,
-            column: 0,
-            message: "Failed to parse Dart file".to_string(),
-        })?;
+        let tree = parser
+            .parse(&code, None)
+            .ok_or_else(|| AnalyzerError::ParseError {
+                file: file_path.display().to_string(),
+                line: 0,
+                column: 0,
+                message: "Failed to parse Dart file".to_string(),
+            })?;
 
         let mut issues = Vec::new();
         let root_node = tree.root_node();
         println!("Dart AST: {}", root_node.to_sexp());
-        
+
         // Check for syntax errors
         if root_node.has_error() {
-             issues.push(CodeIssue {
+            issues.push(CodeIssue {
                 file_path: file_path.display().to_string(),
                 line: 1,
                 column: 1,
@@ -55,7 +57,6 @@ impl DartParser {
         // Based on typical tree-sitter-dart node names (guessed but common):
         // function_signature, method_invocation, identifier, class_definition, etc.
 
-
         // Try to construct query. If it fails, we might have wrong node names.
         // I will use a simplified query set first if unsure, but I will try to be reasonably complete.
         // Actually, if node names are wrong, Query::new will panic or return error. I should unwrap for now.
@@ -69,7 +70,7 @@ impl DartParser {
         // Let's try a safer query with wildcards or just simpler nodes that I'm 80% sure of.
         // identifier, integer_literal are usually safe.
         // class_definition? Maybe 'class_declaration'.
-        
+
         // To be safe, I will use a very permissive query or catch the error if I could, but standard unwrap is fine for 'dev'.
         // query_source
         let query_source = "
@@ -106,7 +107,7 @@ impl DartParser {
                 (selector) @selector_node
             )
         ";
-        
+
         // NOTE: If the above query fails at runtime, I might need to adjust node names.
         let mut nullable_vars = std::collections::HashSet::new();
 
@@ -116,17 +117,23 @@ impl DartParser {
 
             for m in matches {
                 // Pre-process match for definitions
-                let capture_map: std::collections::HashMap<_, _> = m.captures.iter().map(|c| (query.capture_names()[c.index as usize], c.node)).collect();
-                if let (Some(var_def_node), Some(name_node)) = (capture_map.get("var_def"), capture_map.get("def_name")) {
-                     let start_byte = var_def_node.start_byte();
-                     let name_start_byte = name_node.start_byte();
-                     if name_start_byte > start_byte {
-                         let type_section = &code[start_byte..name_start_byte];
-                         if type_section.contains('?') {
-                             let name_text = name_node.utf8_text(code.as_bytes()).unwrap_or("");
-                             nullable_vars.insert(name_text.to_string());
-                         }
-                     }
+                let capture_map: std::collections::HashMap<_, _> = m
+                    .captures
+                    .iter()
+                    .map(|c| (query.capture_names()[c.index as usize], c.node))
+                    .collect();
+                if let (Some(var_def_node), Some(name_node)) =
+                    (capture_map.get("var_def"), capture_map.get("def_name"))
+                {
+                    let start_byte = var_def_node.start_byte();
+                    let name_start_byte = name_node.start_byte();
+                    if name_start_byte > start_byte {
+                        let type_section = &code[start_byte..name_start_byte];
+                        if type_section.contains('?') {
+                            let name_text = name_node.utf8_text(code.as_bytes()).unwrap_or("");
+                            nullable_vars.insert(name_text.to_string());
+                        }
+                    }
                 }
 
                 for capture in m.captures {
@@ -136,7 +143,7 @@ impl DartParser {
                     let capture_name = query.capture_names()[capture.index as usize];
 
                     if capture_name == "print_call" {
-                         issues.push(CodeIssue {
+                        issues.push(CodeIssue {
                             file_path: file_path.display().to_string(),
                             line: start.row + 1,
                             column: start.column + 1,
@@ -146,73 +153,99 @@ impl DartParser {
                             severity: Severity::Warning,
                             category: Category::BestPractice,
                             rule: "no-print".to_string(),
-                            code_snippet: Some(node.utf8_text(code.as_bytes()).unwrap_or("").to_string()),
+                            code_snippet: Some(
+                                node.utf8_text(code.as_bytes()).unwrap_or("").to_string(),
+                            ),
                         });
                     } else if capture_name == "magic_number" {
-                         let text = node.utf8_text(code.as_bytes()).unwrap_or("");
-                         // Ignore common small numbers
-                         if text != "0" && text != "1" && text != "-1" && text != "2" && text != "10" && text != "100" {
-                             // Ignore if it's in a const declaration
-                             let mut is_const = false;
-                             let mut parent = node.parent();
-                             let mut depth = 0;
-                             while let Some(p) = parent {
-                                 depth += 1;
-                                 if p.kind() == "initialized_variable_definition" || p.kind() == "declaration" {
-                                      // Check children for const_builtin
-                                      let mut cursor = p.walk();
-                                      for child in p.children(&mut cursor) {
-                                          if child.kind() == "const_builtin" {
-                                              is_const = true;
-                                              break;
-                                          }
-                                      }
-                                 }
-                                 if is_const { break; }
-                                 parent = p.parent();
-                                 if parent.is_none() || p.kind() == "class_body" || p.kind() == "block" || depth > 5 {
-                                     break; 
-                                 }
-                             }
+                        let text = node.utf8_text(code.as_bytes()).unwrap_or("");
+                        // Ignore common small numbers
+                        if text != "0"
+                            && text != "1"
+                            && text != "-1"
+                            && text != "2"
+                            && text != "10"
+                            && text != "100"
+                        {
+                            // Ignore if it's in a const declaration
+                            let mut is_const = false;
+                            let mut parent = node.parent();
+                            let mut depth = 0;
+                            while let Some(p) = parent {
+                                depth += 1;
+                                if p.kind() == "initialized_variable_definition"
+                                    || p.kind() == "declaration"
+                                {
+                                    // Check children for const_builtin
+                                    let mut cursor = p.walk();
+                                    for child in p.children(&mut cursor) {
+                                        if child.kind() == "const_builtin" {
+                                            is_const = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if is_const {
+                                    break;
+                                }
+                                parent = p.parent();
+                                if parent.is_none()
+                                    || p.kind() == "class_body"
+                                    || p.kind() == "block"
+                                    || depth > 5
+                                {
+                                    break;
+                                }
+                            }
 
-                             if !is_const {
+                            if !is_const {
                                 issues.push(CodeIssue {
                                     file_path: file_path.display().to_string(),
                                     line: start.row + 1,
                                     column: start.column + 1,
                                     end_line: Some(end.row + 1),
                                     end_column: Some(end.column + 1),
-                                    message: format!("magic number detected: {}. Define a constant.", text),
+                                    message: format!(
+                                        "magic number detected: {}. Define a constant.",
+                                        text
+                                    ),
                                     severity: Severity::Suggestion,
                                     category: Category::BestPractice,
                                     rule: "no-magic-numbers".to_string(),
                                     code_snippet: Some(text.to_string()),
                                 });
-                             }
-                         }
+                            }
+                        }
                     } else if capture_name == "string_literal" {
                         let text = node.utf8_text(code.as_bytes()).unwrap_or("");
-                         // Heuristic: Check if string is long and not in a const declaration
+                        // Heuristic: Check if string is long and not in a const declaration
                         if text.len() > 20 && !text.contains("${") {
-                             let mut is_const = false;
-                             let mut parent = node.parent();
-                             while let Some(p) = parent {
-                                 if p.kind() == "initialized_variable_definition" || p.kind() == "declaration" {
-                                      let mut cursor = p.walk();
-                                      for child in p.children(&mut cursor) {
-                                          if child.kind() == "const_builtin" {
-                                              is_const = true;
-                                              break;
-                                          }
-                                      }
-                                 }
-                                 if is_const { break; }
-                                 parent = p.parent();
-                                 if parent.is_none() || p.kind() == "class_body" || p.kind() == "block" {
-                                     break; 
-                                 }
-                             }
-                             
+                            let mut is_const = false;
+                            let mut parent = node.parent();
+                            while let Some(p) = parent {
+                                if p.kind() == "initialized_variable_definition"
+                                    || p.kind() == "declaration"
+                                {
+                                    let mut cursor = p.walk();
+                                    for child in p.children(&mut cursor) {
+                                        if child.kind() == "const_builtin" {
+                                            is_const = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if is_const {
+                                    break;
+                                }
+                                parent = p.parent();
+                                if parent.is_none()
+                                    || p.kind() == "class_body"
+                                    || p.kind() == "block"
+                                {
+                                    break;
+                                }
+                            }
+
                             if !is_const {
                                 issues.push(CodeIssue {
                                     file_path: file_path.display().to_string(),
@@ -231,7 +264,7 @@ impl DartParser {
                     } else if capture_name == "class_name" {
                         let text = node.utf8_text(code.as_bytes()).unwrap_or("");
                         if !text.chars().next().map_or(false, |c| c.is_uppercase()) {
-                             issues.push(CodeIssue {
+                            issues.push(CodeIssue {
                                 file_path: file_path.display().to_string(),
                                 line: start.row + 1,
                                 column: start.column + 1,
@@ -246,10 +279,10 @@ impl DartParser {
                         }
                     } else if capture_name == "variable_name" {
                         let text = node.utf8_text(code.as_bytes()).unwrap_or("");
-                        
+
                         // Check for camelCase
                         if !text.chars().next().map_or(false, |c| c.is_lowercase()) {
-                             issues.push(CodeIssue {
+                            issues.push(CodeIssue {
                                 file_path: file_path.display().to_string(),
                                 line: start.row + 1,
                                 column: start.column + 1,
@@ -264,7 +297,9 @@ impl DartParser {
                         }
 
                         // Check for generic names
-                        let generic_names = ["data", "result", "info", "value", "temp", "tmp", "obj", "item"];
+                        let generic_names = [
+                            "data", "result", "info", "value", "temp", "tmp", "obj", "item",
+                        ];
                         if generic_names.contains(&text) {
                             issues.push(CodeIssue {
                                 file_path: file_path.display().to_string(),
@@ -299,7 +334,7 @@ impl DartParser {
                                     column: start.column + 1,
                                     end_line: Some(end.row + 1),
                                     end_column: Some(end.column + 1),
-                                    message: format!("Variable name '{}' is too short. Use descriptive names.", text),
+                                    message: format!("Penamaan variable '{}' cukup pendek. Kamu bisa menggunakan penamaan yang lebih deskriptif untuk penulisan yang lebih baik.", text),
                                     severity: Severity::Suggestion,
                                     category: Category::CodeQuality,
                                     rule: "variable-naming".to_string(),
@@ -312,15 +347,22 @@ impl DartParser {
                         if let Some(parent) = node.parent() {
                             let mut cursor = parent.walk();
                             for child in parent.children(&mut cursor) {
-                                if (child.kind() == "type_identifier" || child.kind() == "boolean_type") && child.utf8_text(code.as_bytes()).unwrap_or("") == "bool" {
-                                    if !text.starts_with("is") && !text.starts_with("has") && !text.starts_with("can") && !text.starts_with("should") {
-                                         issues.push(CodeIssue {
+                                if (child.kind() == "type_identifier"
+                                    || child.kind() == "boolean_type")
+                                    && child.utf8_text(code.as_bytes()).unwrap_or("") == "bool"
+                                {
+                                    if !text.starts_with("is")
+                                        && !text.starts_with("has")
+                                        && !text.starts_with("can")
+                                        && !text.starts_with("should")
+                                    {
+                                        issues.push(CodeIssue {
                                             file_path: file_path.display().to_string(),
                                             line: start.row + 1,
                                             column: start.column + 1,
                                             end_line: Some(end.row + 1),
                                             end_column: Some(end.column + 1),
-                                            message: format!("Boolean variable '{}' should start with 'is', 'has', 'can', or 'should'.", text),
+                                            message: format!("Dalam menuliskan sebuah penamaan variable '{}' kamu bisa memulainya dengan keyword seperti 'is', 'has', 'can', or 'should'. Contohnya: isOddNumber", text),
                                             severity: Severity::Warning,
                                             category: Category::CodeQuality,
                                             rule: "variable-naming".to_string(),
@@ -330,17 +372,17 @@ impl DartParser {
                                 }
                             }
                         }
-                        
-                         // Heuristic unused check
+
+                        // Heuristic unused check
                         let count = code.matches(text).count();
                         if count <= 1 {
-                             issues.push(CodeIssue {
+                            issues.push(CodeIssue {
                                 file_path: file_path.display().to_string(),
                                 line: start.row + 1,
                                 column: start.column + 1,
                                 end_line: Some(end.row + 1),
                                 end_column: Some(end.column + 1),
-                                message: format!("Variable '{}' appears to be unused", text),
+                                message: format!("Sepertinya variabel '{}' ini tidak kamu gunakan, kamu bisa melakukan penghapusan pada variabel yang tidak digunakan seperti ini ya!", text),
                                 severity: Severity::Warning,
                                 category: Category::Maintainability,
                                 rule: "unused-variable".to_string(),
@@ -358,13 +400,13 @@ impl DartParser {
                             parent = p.parent();
                         }
                         if depth >= 2 {
-                             issues.push(CodeIssue {
+                            issues.push(CodeIssue {
                                 file_path: file_path.display().to_string(),
                                 line: start.row + 1,
                                 column: start.column + 1,
                                 end_line: Some(end.row + 1),
                                 end_column: Some(end.column + 1),
-                                message: "Avoid deeply nested if statements.".to_string(),
+                                message: "Hindari penggunaan kondisi bersarang seperti ini ya, agar lebih baik kamu bisa melakukan refactor terlebih dahulu untuk memudahkan kamu dalam proses memahami kode berikutnya.".to_string(),
                                 severity: Severity::Warning,
                                 category: Category::Complexity,
                                 rule: "nested-if".to_string(),
@@ -377,9 +419,12 @@ impl DartParser {
                         if nullable_vars.contains(text) {
                             if let Some(selector) = capture_map.get("selector_node") {
                                 // selector should contain '?' if safe
-                                let selector_text = selector.utf8_text(code.as_bytes()).unwrap_or("");
-                                if !selector_text.starts_with("?.") && !selector_text.starts_with("?[") {
-                                     issues.push(CodeIssue {
+                                let selector_text =
+                                    selector.utf8_text(code.as_bytes()).unwrap_or("");
+                                if !selector_text.starts_with("?.")
+                                    && !selector_text.starts_with("?[")
+                                {
+                                    issues.push(CodeIssue {
                                         file_path: file_path.display().to_string(),
                                         line: start.row + 1,
                                         column: start.column + 1,
@@ -398,36 +443,36 @@ impl DartParser {
                         // Check for array access with literal index
                         let text = node.utf8_text(code.as_bytes()).unwrap_or("");
                         // S-expression: (selector (unconditional_assignable_selector (index_selector (decimal_integer_literal))))
-                        // We can just check text? selector text would be "[10]" 
+                        // We can just check text? selector text would be "[10]"
                         if text.starts_with('[') {
                             // It is an index selector
-                             // Check for high index? Or just warn about bounds?
-                             // Test calls it "Unsafe array access".
-                             // Let's check for literal integers inside.
-                             if text.contains(|c: char| c.is_digit(10)) {
-                                  // Very heuristic
-                                  // Check if it's a large number?
-                                  // Let's just flag it as potentially unsafe if it's a literal index > 0?
-                                  issues.push(CodeIssue {
+                            // Check for high index? Or just warn about bounds?
+                            // Test calls it "Unsafe array access".
+                            // Let's check for literal integers inside.
+                            if text.contains(|c: char| c.is_digit(10)) {
+                                // Very heuristic
+                                // Check if it's a large number?
+                                // Let's just flag it as potentially unsafe if it's a literal index > 0?
+                                issues.push(CodeIssue {
                                     file_path: file_path.display().to_string(),
                                     line: start.row + 1,
                                     column: start.column + 1,
                                     end_line: Some(end.row + 1),
                                     end_column: Some(end.column + 1),
-                                    message: "Potential unsafe array access with literal index. Ensure bounds check.".to_string(),
+                                    message: "Potensial issue dapat terjadi dengan pendekatan seperti ini, pastikan kamu selalu melakukan pengecekan untuk index-nya ya.".to_string(),
                                     severity: Severity::Warning,
                                     category: Category::CodeQuality,
                                     rule: "null-safety".to_string(),
                                     code_snippet: Some(text.to_string()),
                                 });
-                             }
+                            }
                         }
                     }
                 }
             }
         } else if let Err(e) = Query::new(&tree_sitter_dart::language(), query_source) {
             // Fallback if query fails compilation (due to wrong node names)
-             issues.push(CodeIssue {
+            issues.push(CodeIssue {
                 file_path: file_path.display().to_string(),
                 line: 1,
                 column: 1,
@@ -458,9 +503,9 @@ impl DartParser {
         let dart_files = self.find_dart_files(dir_path)?;
 
         for file_path in dart_files {
-             if let Ok(analysis) = self.analyze_file(&file_path) {
-                 result.add_file(analysis);
-             }
+            if let Ok(analysis) = self.analyze_file(&file_path) {
+                result.add_file(analysis);
+            }
         }
         Ok(result)
     }
@@ -469,7 +514,8 @@ impl DartParser {
         let mut files = Vec::new();
         for entry in walkdir::WalkDir::new(dir_path)
             .into_iter()
-            .filter_map(|e| e.ok()) {
+            .filter_map(|e| e.ok())
+        {
             let path = entry.path();
             if path.is_file() {
                 if let Some(ext) = path.extension() {
