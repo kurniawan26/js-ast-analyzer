@@ -35,7 +35,6 @@ impl DartParser {
 
         let mut issues = Vec::new();
         let root_node = tree.root_node();
-        println!("Dart AST: {}", root_node.to_sexp());
 
         // Check for syntax errors
         if root_node.has_error() {
